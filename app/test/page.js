@@ -1,104 +1,52 @@
-import { createClient } from '@/lib/supabase/server';
-
-export default async function TestPage() {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .from('connection_test')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-red-50 flex items-center justify-center p-8">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">
-            ❌ Connection Failed
-          </h1>
-          <div className="bg-red-100 rounded-lg p-4 mb-4">
-            <p className="font-mono text-sm text-red-900 break-all">
-              {error.message}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-green-500 rounded-full flex items-center justify-center text-white text-2xl">
-              ✓
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Supabase Connected!
-              </h1>
-              <p className="text-sm text-gray-500">
-                Boom Plus Marketplace · Day 1
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-green-800">
-              🎉 Foundation พร้อมใช้งาน! เว็บของคุณคุยกับ database ได้แล้ว
-            </p>
-          </div>
-
-          <h2 className="text-lg font-bold text-gray-800 mb-3">
-            📊 Data from Supabase:
-          </h2>
-
-          <div className="space-y-2">
-            {data.map((row) => (
-              <div
-                key={row.id}
-                className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-              >
-                <div className="flex items-start justify-between">
-                  <p className="text-gray-900 font-medium">{row.message}</p>
-                  <span className="text-xs text-gray-400">#{row.id}</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(row.created_at).toLocaleString('th-TH')}
-                </p>
-              </div>
-            ))}
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
+      <div className="max-w-2xl w-full text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-blue-600 text-white text-4xl font-bold mb-6 shadow-lg">
+          B
+        </div>
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
+          Boom Plus
+          <span className="block text-blue-600 mt-2">Marketplace</span>
+        </h1>
+        <p className="text-xl text-gray-600 mb-8">
+          วิดีโอช้อปไทย · ค่าส่งทุน · ค่าธรรมเนียม 2%
+        </p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+          <p className="text-lg text-gray-700 mb-4">
+            🚀 <strong>กำลังพัฒนา...</strong>
+          </p>
+          <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+            <div>✅ Database: 42 tables</div>
+            <div>✅ Security: 138 RLS policies</div>
+            <div>✅ Auth: Configured</div>
+            <div>✅ 10 Franchise branches</div>
           </div>
         </div>
-
-        <div className="bg-white rounded-2xl shadow-xl p-6">
-          <h3 className="font-bold text-gray-800 mb-3">
-            ✅ Infrastructure Status
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-green-500">✓</span>
-              <span>Next.js + Tailwind CSS</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-500">✓</span>
-              <span>Supabase Database (Singapore)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-500">✓</span>
-              <span>Authentication Ready</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-500">✓</span>
-              <span>Server Components</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-500">✓</span>
-              <span>Row Level Security Enabled</span>
-            </div>
-          </div>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          
+            href="/signup"
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          >
+            สมัครสมาชิก
+          </a>
+          
+            href="/login"
+            className="px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+          >
+            เข้าสู่ระบบ
+          </a>
+          
+            href="/test"
+            className="px-8 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+          >
+            ทดสอบระบบ
+          </a>
         </div>
+        <p className="text-sm text-gray-500 mt-8">
+          © 2026 Boom Plus Shop Co., Ltd.
+        </p>
       </div>
-    </div>
-  );
+    </main>
+  )
 }
