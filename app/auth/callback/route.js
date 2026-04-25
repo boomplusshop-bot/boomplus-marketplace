@@ -2,18 +2,22 @@
 import { NextResponse } from "next/server"
 
 export async function GET(request) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get("code")
-  const next = searchParams.get("next") ?? "/"
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get("code")
+  const next = requestUrl.searchParams.get("next") || "/"
+  const origin = requestUrl.origin
 
-  if (code) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
-    }
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=missing_code`)
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  const supabase = await createClient()
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  
+  if (error) {
+    console.error("Auth callback error:", error)
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  }
+
+  return NextResponse.redirect(`${origin}${next}`)
 }

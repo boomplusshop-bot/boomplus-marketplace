@@ -61,7 +61,7 @@ export default async function ProfilePage() {
           <p style={{color: "#6b7280", fontSize: "1rem", marginBottom: "1rem"}}>
             @{profile?.username}
           </p>
-          <div>
+          <div style={{marginBottom: profile?.bio ? "1.25rem" : "0"}}>
             <span style={{background: "#dbeafe", color: "#1e40af", padding: "0.375rem 1rem", borderRadius: "20px", fontSize: "0.875rem", fontWeight: "500", marginRight: "0.5rem"}}>
               {roleLabel}
             </span>
@@ -69,6 +69,13 @@ export default async function ProfilePage() {
               {tierLabel}
             </span>
           </div>
+          {profile?.bio && (
+            <div style={{background: "#f9fafb", borderRadius: "12px", padding: "1rem 1.25rem", marginTop: "1rem", borderLeft: "4px solid #10b981"}}>
+              <p style={{color: "#374151", fontSize: "0.95rem", lineHeight: "1.6", margin: 0, whiteSpace: "pre-wrap", textAlign: "left"}}>
+                {profile.bio}
+              </p>
+            </div>
+          )}
         </div>
 
         <div style={{display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1.5rem"}}>
@@ -115,7 +122,9 @@ export default async function ProfilePage() {
             </div>
             <div style={{display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid #f3f4f6"}}>
               <span style={{color: "#6b7280", fontSize: "0.9rem"}}>เบอร์โทร</span>
-              <span style={{color: "#9ca3af", fontSize: "0.9rem"}}>{profile?.phone || "ยังไม่ระบุ"}</span>
+              <span style={{color: profile?.phone ? "#111827" : "#9ca3af", fontSize: "0.9rem", fontWeight: profile?.phone ? "500" : "400"}}>
+                {profile?.phone || "ยังไม่ระบุ"}
+              </span>
             </div>
             <div style={{display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid #f3f4f6"}}>
               <span style={{color: "#6b7280", fontSize: "0.9rem"}}>ยืนยันอีเมล</span>
