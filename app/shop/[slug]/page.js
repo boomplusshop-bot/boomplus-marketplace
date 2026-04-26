@@ -3,12 +3,13 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 
 export default async function PublicShopPage({ params }) {
-  const { slug } = await params
+  const resolvedParams = await params
+  const slug = resolvedParams.slug
   const supabase = await createClient()
 
   const { data: shop } = await supabase
     .from("shops")
-    .select("*, shop_categories(name, name_en, icon), addresses!shops_pickup_address_id_fkey(district, province)")
+    .select("*")
     .eq("slug", slug)
     .maybeSingle()
 
@@ -16,155 +17,182 @@ export default async function PublicShopPage({ params }) {
     notFound()
   }
 
+  let category = null
+  if (shop.category_id) {
+    const { data: cat } = await supabase
+      .from("shop_categories")
+      .select("name, icon")
+      .eq("id", shop.category_id)
+      .maybeSingle()
+    category = cat
+  }
+
+  let address = null
+  if (shop.pickup_address_id) {
+    const { data: addr } = await supabase
+      .from("addresses")
+      .select("district, province")
+      .eq("id", shop.pickup_address_id)
+      .maybeSingle()
+    address = addr
+  }
+
   const { data: { user } } = await supabase.auth.getUser()
   let isOwner = false
-  
   if (user) {
     const { data: profile } = await supabase
       .from("users")
       .select("id")
       .eq("auth_id", user.id)
       .maybeSingle()
-    
     isOwner = profile?.id === shop.owner_id
   }
 
-  const statusLabel = {
-    pending: "รอการยืนยัน",
-    active: "เปิดให้บริการ",
-    suspended: "ระงับชั่วคราว",
-    closed: "ปิดร้าน"
-  }[shop.status] || shop.status
+  const { data: products } = await supabase
+    .from("products")
+    .select("id, name, slug, price, original_price, thumbnail_url, stock, status, sold_count")
+    .eq("shop_id", shop.id)
+    .in("status", ["active", "out_of_stock"])
+    .order("created_at", { ascending: false })
 
-  const statusColor = {
-    pending: "#f59e0b",
-    active: "#10b981",
-    suspended: "#ef4444",
-    closed: "#6b7280"
-  }[shop.status] || "#6b7280"
+  const totalProducts = products?.length || 0
 
-  const shopInitial = (shop.name || "?").charAt(0).toUpperCase()
+  const statusBadge = {
+    active: { label: "เปิดให้บริการ", color: "#059669", bg: "#d1fae5" },
+    pending: { label: "รอการยืนยัน", color: "#d97706", bg: "#fef3c7" },
+    suspended: { label: "ระงับการให้บริการ", color: "#dc2626", bg: "#fee2e2" },
+    inactive: { label: "ปิดร้านชั่วคราว", color: "#6b7280", bg: "#f3f4f6" }
+  }
+  const sBadge = statusBadge[shop.status] || statusBadge.pending
 
   return (
     <main style={{minHeight: "100vh", background: "#f9fafb"}}>
-      
-      <div style={{background: "linear-gradient(135deg, #2563eb, #7c3aed)", height: "180px", position: "relative"}}>
-        <div style={{maxWidth: "1100px", margin: "0 auto", padding: "1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start"}}>
-          <Link href="/" style={{display: "inline-block", color: "white", textDecoration: "none", fontSize: "0.95rem", fontWeight: "500", background: "rgba(255,255,255,0.2)", padding: "0.5rem 1rem", borderRadius: "8px", backdropFilter: "blur(10px)"}}>
+      <div style={{background: "linear-gradient(135deg, #2563eb, #7c3aed)", padding: "2rem 1rem", color: "white"}}>
+        <div style={{maxWidth: "1100px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem"}}>
+          <Link href="/" style={{color: "white", textDecoration: "none", fontSize: "0.95rem", fontWeight: "500"}}>
             กลับหน้าแรก
           </Link>
           {isOwner && (
-            <Link href="/shop/dashboard" style={{display: "inline-block", color: "#2563eb", textDecoration: "none", fontSize: "0.85rem", fontWeight: "600", background: "white", padding: "0.5rem 1rem", borderRadius: "8px"}}>
+            <Link href="/shop/dashboard" style={{padding: "0.5rem 1rem", background: "rgba(255,255,255,0.2)", color: "white", borderRadius: "8px", textDecoration: "none", fontSize: "0.875rem", fontWeight: "600"}}>
               จัดการร้าน
             </Link>
           )}
         </div>
       </div>
 
-      <div style={{maxWidth: "1100px", margin: "0 auto", padding: "0 1rem"}}>
-        
-        <div style={{background: "white", borderRadius: "16px", padding: "1.75rem", marginTop: "-60px", border: "1px solid #e5e7eb", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", position: "relative"}}>
-          
-          <div style={{display: "flex", gap: "1.25rem", flexWrap: "wrap", marginBottom: "1.25rem"}}>
-            <div style={{width: "100px", height: "100px", borderRadius: "16px", background: "linear-gradient(135deg, #10b981, #059669)", color: "white", fontSize: "2.5rem", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)"}}>
-              {shopInitial}
+      <div style={{maxWidth: "1100px", margin: "0 auto", padding: "2rem 1rem"}}>
+        <div style={{background: "white", borderRadius: "16px", padding: "2rem", border: "1px solid #e5e7eb", marginBottom: "1.5rem", marginTop: "-3rem"}}>
+          <div style={{display: "flex", gap: "1.5rem", marginBottom: "1.5rem", flexWrap: "wrap"}}>
+            <div style={{width: "100px", height: "100px", borderRadius: "16px", background: "linear-gradient(135deg, #2563eb, #7c3aed)", color: "white", fontSize: "3rem", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center"}}>
+              {shop.name.charAt(0).toUpperCase()}
             </div>
-            
             <div style={{flex: 1, minWidth: "200px"}}>
-              <div style={{display: "inline-block", padding: "0.25rem 0.75rem", background: statusColor + "20", color: statusColor, borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.5rem"}}>
-                {statusLabel}
+              <div style={{display: "inline-block", padding: "0.25rem 0.75rem", background: sBadge.bg, color: sBadge.color, borderRadius: "12px", fontSize: "0.75rem", fontWeight: "700", marginBottom: "0.5rem"}}>
+                {sBadge.label}
               </div>
-              <h1 style={{fontSize: "1.75rem", fontWeight: "700", color: "#111827", margin: 0, marginBottom: "0.5rem"}}>
+              <h1 style={{fontSize: "1.875rem", fontWeight: "700", color: "#111827", margin: 0, marginBottom: "0.25rem"}}>
                 {shop.name}
               </h1>
-              <p style={{color: "#6b7280", fontSize: "0.875rem", margin: 0, marginBottom: "0.25rem"}}>
+              <p style={{color: "#6b7280", fontSize: "0.875rem", margin: 0, marginBottom: "0.5rem"}}>
                 boomplus.shop/{shop.slug}
               </p>
-              <p style={{color: "#374151", fontSize: "0.9rem", margin: 0}}>
-                {shop.shop_categories?.icon} {shop.shop_categories?.name}
-              </p>
-            </div>
-
-            <div style={{flexShrink: 0}}>
-              {!isOwner && (
-                <button disabled style={{padding: "0.75rem 1.5rem", background: "#2563eb", color: "white", border: "none", borderRadius: "10px", fontSize: "0.95rem", fontWeight: "600", cursor: "not-allowed", opacity: 0.7}}>
-                  ติดตาม (Day 12)
-                </button>
+              {category && (
+                <p style={{color: "#374151", fontSize: "0.95rem", margin: 0, fontWeight: "500"}}>
+                  {category.icon} {category.name}
+                </p>
               )}
             </div>
           </div>
 
           {shop.description && (
-            <div style={{padding: "1rem", background: "#f9fafb", borderRadius: "10px", marginBottom: "1rem"}}>
-              <p style={{color: "#374151", fontSize: "0.95rem", margin: 0, lineHeight: "1.6", whiteSpace: "pre-wrap"}}>
-                {shop.description}
-              </p>
+            <p style={{color: "#374151", fontSize: "1rem", lineHeight: "1.6", marginBottom: "1.5rem"}}>
+              {shop.description}
+            </p>
+          )}
+
+          {address && (
+            <p style={{color: "#6b7280", fontSize: "0.875rem", margin: 0}}>
+              <strong>ที่ตั้ง:</strong> {address.district}, {address.province}
+            </p>
+          )}
+        </div>
+
+        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem", marginBottom: "1.5rem"}}>
+          <div style={{background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
+            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600"}}>สินค้า</p>
+            <p style={{fontSize: "1.75rem", fontWeight: "700", color: "#111827", margin: "0.5rem 0 0"}}>{totalProducts}</p>
+          </div>
+          <div style={{background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
+            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600"}}>ผู้ติดตาม</p>
+            <p style={{fontSize: "1.75rem", fontWeight: "700", color: "#111827", margin: "0.5rem 0 0"}}>{shop.followers_count || 0}</p>
+          </div>
+          <div style={{background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
+            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600"}}>ออเดอร์</p>
+            <p style={{fontSize: "1.75rem", fontWeight: "700", color: "#111827", margin: "0.5rem 0 0"}}>{shop.total_sales_count || 0}</p>
+          </div>
+          <div style={{background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
+            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600"}}>รีวิว</p>
+            <p style={{fontSize: "1.75rem", fontWeight: "700", color: "#111827", margin: "0.5rem 0 0"}}>
+              {shop.rating_count > 0 ? Number(shop.rating_average).toFixed(1) : "-"}
+            </p>
+          </div>
+        </div>
+
+        {totalProducts === 0 ? (
+          <div style={{background: "white", borderRadius: "16px", padding: "3rem 2rem", border: "2px dashed #d1d5db", textAlign: "center"}}>
+            <p style={{fontSize: "4rem", margin: 0, marginBottom: "0.75rem"}}>📦</p>
+            <h2 style={{fontSize: "1.25rem", fontWeight: "700", color: "#111827", margin: 0, marginBottom: "0.5rem"}}>
+              ยังไม่มีสินค้า
+            </h2>
+          </div>
+        ) : (
+          <div>
+            <h2 style={{fontSize: "1.25rem", fontWeight: "700", color: "#111827", marginBottom: "1rem"}}>
+              สินค้าทั้งหมด ({totalProducts})
+            </h2>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem"}}>
+              {products.map(product => {
+                const hasDiscount = product.original_price && product.original_price > product.price
+                const discount = hasDiscount ? Math.round((1 - product.price / product.original_price) * 100) : 0
+                return (
+                  <div key={product.id} style={{background: "white", borderRadius: "12px", border: "1px solid #e5e7eb", overflow: "hidden"}}>
+                    <div style={{aspectRatio: "1", background: "#f3f4f6", position: "relative"}}>
+                      {product.thumbnail_url ? (
+                        <img src={product.thumbnail_url} alt={product.name} style={{width: "100%", height: "100%", objectFit: "cover"}} />
+                      ) : (
+                        <div style={{width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "3rem"}}>📦</div>
+                      )}
+                      {hasDiscount && (
+                        <div style={{position: "absolute", top: "0.5rem", left: "0.5rem", padding: "0.25rem 0.5rem", background: "#dc2626", color: "white", borderRadius: "8px", fontSize: "0.7rem", fontWeight: "700"}}>
+                          -{discount}%
+                        </div>
+                      )}
+                    </div>
+                    <div style={{padding: "0.875rem"}}>
+                      <h3 style={{fontSize: "0.875rem", fontWeight: "600", color: "#111827", margin: 0, marginBottom: "0.5rem"}}>
+                        {product.name}
+                      </h3>
+                      <div style={{display: "flex", alignItems: "baseline", gap: "0.5rem"}}>
+                        <p style={{fontSize: "1.125rem", fontWeight: "700", color: "#dc2626", margin: 0}}>
+                          ฿{Number(product.price).toLocaleString()}
+                        </p>
+                        {hasDiscount && (
+                          <p style={{fontSize: "0.8rem", color: "#9ca3af", margin: 0, textDecoration: "line-through"}}>
+                            ฿{Number(product.original_price).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                      <p style={{fontSize: "0.75rem", color: "#6b7280", margin: "0.5rem 0 0"}}>
+                        ขายแล้ว {product.sold_count || 0} ชิ้น
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )}
-
-          {shop.addresses && (
-            <div style={{display: "flex", alignItems: "center", gap: "0.5rem", color: "#6b7280", fontSize: "0.875rem"}}>
-              <span>ที่ตั้ง:</span>
-              <span style={{color: "#374151", fontWeight: "500"}}>
-                {shop.addresses.district}, {shop.addresses.province}
-              </span>
-            </div>
-          )}
-
-        </div>
-
-        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginTop: "1.25rem"}}>
-          
-          <div style={{background: "white", borderRadius: "12px", padding: "1rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
-            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600", textTransform: "uppercase"}}>สินค้า</p>
-            <p style={{fontSize: "1.5rem", fontWeight: "700", color: "#111827", margin: "0.25rem 0 0"}}>
-              {shop.total_products || 0}
-            </p>
           </div>
-
-          <div style={{background: "white", borderRadius: "12px", padding: "1rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
-            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600", textTransform: "uppercase"}}>ผู้ติดตาม</p>
-            <p style={{fontSize: "1.5rem", fontWeight: "700", color: "#111827", margin: "0.25rem 0 0"}}>
-              {shop.followers_count || 0}
-            </p>
-          </div>
-
-          <div style={{background: "white", borderRadius: "12px", padding: "1rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
-            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600", textTransform: "uppercase"}}>ออเดอร์</p>
-            <p style={{fontSize: "1.5rem", fontWeight: "700", color: "#111827", margin: "0.25rem 0 0"}}>
-              {shop.total_orders || 0}
-            </p>
-          </div>
-
-          <div style={{background: "white", borderRadius: "12px", padding: "1rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
-            <p style={{fontSize: "0.75rem", color: "#6b7280", margin: 0, fontWeight: "600", textTransform: "uppercase"}}>รีวิว</p>
-            <p style={{fontSize: "1.5rem", fontWeight: "700", color: "#111827", margin: "0.25rem 0 0"}}>
-              {shop.rating_average ? Number(shop.rating_average).toFixed(1) : "-"}
-            </p>
-          </div>
-        </div>
-
-        <div style={{background: "white", borderRadius: "16px", padding: "2rem", marginTop: "1.25rem", border: "1px solid #e5e7eb", textAlign: "center"}}>
-          <p style={{fontSize: "3rem", margin: 0, marginBottom: "0.5rem"}}>📦</p>
-          <h2 style={{fontSize: "1.25rem", fontWeight: "700", color: "#374151", margin: 0, marginBottom: "0.5rem"}}>
-            ยังไม่มีสินค้า
-          </h2>
-          <p style={{color: "#6b7280", fontSize: "0.95rem", margin: 0}}>
-            ร้านค้านี้กำลังเตรียมสินค้า กลับมาดูใหม่เร็วๆ นี้!
-          </p>
-          {isOwner && (
-            <button disabled style={{marginTop: "1rem", padding: "0.625rem 1.5rem", background: "#10b981", color: "white", border: "none", borderRadius: "10px", fontSize: "0.9rem", fontWeight: "600", cursor: "not-allowed", opacity: 0.7}}>
-              เพิ่มสินค้าแรก (Day 11)
-            </button>
-          )}
-        </div>
-
-        <div style={{textAlign: "center", padding: "2rem 0", color: "#9ca3af", fontSize: "0.85rem"}}>
-          Boom Plus Marketplace 2026
-        </div>
-
+        )}
       </div>
-
     </main>
   )
 }
