@@ -18,9 +18,7 @@ export default async function AuthButton() {
         <Link href="/login" style={{padding: "0.75rem 2rem", background: "white", color: "#2563eb", border: "2px solid #2563eb", borderRadius: "8px", textDecoration: "none", fontWeight: "500"}}>
           Login
         </Link>
-        <Link href="/test" style={{padding: "0.75rem 2rem", background: "#f3f4f6", color: "#374151", borderRadius: "8px", textDecoration: "none", fontWeight: "500"}}>
-          Test
-        </Link>
+
       </div>
     )
   }
